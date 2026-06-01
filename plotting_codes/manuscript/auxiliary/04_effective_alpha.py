@@ -117,9 +117,11 @@ def obtain_fitting_parameters(xlattice_transformed):
 # Process datasets                                                             #
 ################################################################################
 T1, lat1 = np.loadtxt("data/LP_aged.csv", unpack=True, delimiter=",")
-T1 = T1[:-1]
-lat1 = lat1[:-1]
+T1 = T1[1:-1] # removing unreliable measurements during experiment setup/shutting down
+lat1 = lat1[1:-1]
 T2, lat2 = np.loadtxt("data/LP_quenched.csv", unpack=True, delimiter=",")
+T2 = T2[1:] # removing unreliable measurements during experiment setup/shutting down
+lat2 = lat2[1:]
 
 xlattice_transformed = transform_xlattice(T_list, TE_list, xlattice)
 A_coeff, B_coeff, C_coeff, shrink_parameter_C, small_misfit_D = obtain_fitting_parameters(
