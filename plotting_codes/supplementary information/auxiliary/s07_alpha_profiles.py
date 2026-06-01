@@ -58,17 +58,17 @@ def obtain_fitting_parameters(xlattice_transformed, WC_1nn_sum):
     return A_coeff, B_coeff, C_coeff, shrink_parameter_C, small_misfit_D
 
 
-def transform_xlattice_old(T_list, TE_list, xlattice):
-    T1_old_raw, lat1_old_raw = np.loadtxt("data/Francisco_h1.csv", unpack=True)
-    T2_old_raw, lat2_old_raw = np.loadtxt("data/Francisco_h2.csv", unpack=True)
+def transform_xlattice(T_list, TE_list, xlattice):
+    T1_raw, lat1_raw = np.loadtxt("data/LP_aged.csv", unpack=True, delimiter=",")
+    T2_raw, lat2_raw = np.loadtxt("data/LP_quenched.csv", unpack=True, delimiter=",")
 
-    a0_exp = lat2_old_raw[-1] - 0.0018
+    a0_exp = lat2_raw[-1]
     initial_spline = RectBivariateSpline(T_list, TE_list, xlattice, kx=1, ky=1, s=0)
     a0_sim = initial_spline(1073.19, 1073.19)
     a_diff = a0_exp - a0_sim
 
-    _, CTE1 = compute_CTE_nonuniform(T1_old_raw[:50], lat1_old_raw[:50])
-    _, CTE2 = compute_CTE_nonuniform(T2_old_raw[:50], lat2_old_raw[:50])
+    _, CTE1 = compute_CTE_nonuniform(T1_raw[:50], lat1_raw[:50])
+    _, CTE2 = compute_CTE_nonuniform(T2_raw[:50], lat2_raw[:50])
     _, sim_CTE = compute_CTE(TE_list, xlattice + a_diff)
 
     thermal_exp = (np.mean(CTE1[1:]) + np.mean(CTE2)) / 2
@@ -220,54 +220,53 @@ else:
     print(f"  JSON file not found: {json_file_single}")
 
 ################################################################################
-# Load legacy effective alpha data from old Francisco datasets                 #
+# Load effective alpha data                                                    #
 ################################################################################
 
-print("\nLoading legacy effective alpha data (s07)...")
-alpha_old_aged = None
-T_old_aged = None
-alpha_old_quenched = None
-T_old_quenched = None
+print("\nLoading effective alpha data (s07)...")
+alpha_aged = None
+T_aged = None
+alpha_quenched = None
+T_quenched = None
 
 try:
     xlattice_data = np.load(sim_data_dir / "lattice.npy")
     xlattice = np.mean(xlattice_data, axis=-1)
     _T_list_legacy = np.arange(400, 1601, 100).astype(int)
-    WC_1nn_sum_old = np.sum(np.abs(np.load(wc_data_dir / "WC_avg.npy")[0, 1:-3, :]), axis=-1)
+    WC_1nn_sum = np.sum(np.abs(np.load(wc_data_dir / "WC_avg.npy")[0, 1:-3, :]), axis=-1)
 
-    xlattice_sample_old = transform_xlattice_old(_T_list_legacy, TE_list_ref, xlattice)
+    xlattice_transformed = transform_xlattice(_T_list_legacy, TE_list_ref, xlattice)
     (
-        A_coeff_old,
-        B_coeff_old,
-        C_coeff_old,
-        shrink_parameter_C_old,
-        small_misfit_D_old,
-    ) = obtain_fitting_parameters(xlattice_sample_old, WC_1nn_sum_old)
+        A_coeff,
+        B_coeff,
+        C_coeff,
+        shrink_parameter_C,
+        small_misfit_D,
+    ) = obtain_fitting_parameters(xlattice_transformed, WC_1nn_sum)
 
-    T_old_aged, lat_old_aged = np.loadtxt("data/Francisco_h1.csv", unpack=True)
-    T_old_aged = T_old_aged[:-1]
-    lat_old_aged = lat_old_aged[:-1]
+    T_aged, lat_aged = np.loadtxt("data/LP_aged.csv", unpack=True, delimiter=",")
+    T_aged = T_aged[:-1]
+    lat_aged = lat_aged[:-1]
 
-    T_old_quenched, lat_old_quenched = np.loadtxt("data/Francisco_h2.csv", unpack=True)
-    lat_old_quenched = lat_old_quenched - 0.0018
+    T_quenched, lat_quenched = np.loadtxt("data/LP_quenched.csv", unpack=True, delimiter=",")
 
-    alpha_old_aged = (
-        C_coeff_old
-        + B_coeff_old * T_old_aged
-        + A_coeff_old * T_old_aged**2
-        + small_misfit_D_old
-        - lat_old_aged
-    ) / (-shrink_parameter_C_old)
-    alpha_old_quenched = (
-        C_coeff_old
-        + B_coeff_old * T_old_quenched
-        + A_coeff_old * T_old_quenched**2
-        + small_misfit_D_old
-        - lat_old_quenched
-    ) / (-shrink_parameter_C_old)
+    alpha_aged = (
+        C_coeff
+        + B_coeff * T_aged
+        + A_coeff * T_aged**2
+        + small_misfit_D
+        - lat_aged
+    ) / (-shrink_parameter_C)
+    alpha_quenched = (
+        C_coeff
+        + B_coeff * T_quenched
+        + A_coeff * T_quenched**2
+        + small_misfit_D
+        - lat_quenched
+    ) / (-shrink_parameter_C)
     print(
-        "  Loaded legacy alpha data:"
-        f" aged={len(T_old_aged)} points, quenched={len(T_old_quenched)} points"
+        "  Loaded alpha data:"
+        f" aged={len(T_aged)} points, quenched={len(T_quenched)} points"
     )
 except Exception as e:
     print(f"  Warning: Could not load legacy effective alpha data: {e}")
@@ -332,12 +331,12 @@ _plot_sim_series(ax, T_ramp_solid, alpha_ramp_solid, T_ramp_hold, alpha_ramp_hol
 _plot_sim_series(ax, T_single_solid, alpha_single_solid, T_single_hold, alpha_single_hold,
                  "#37b35f", "Synthetic aged state")
 
-if alpha_old_aged is not None and T_old_aged is not None:
-    ax.plot(T_old_aged, alpha_old_aged, "-", c="#37b35f", linewidth=1.5,
+if alpha_aged is not None and T_aged is not None:
+    ax.plot(T_aged, alpha_aged, "-", c="#37b35f", linewidth=1.5,
             label="Exp aged state", alpha=0.5, zorder=0)
 
-if alpha_old_quenched is not None and T_old_quenched is not None:
-    ax.plot(T_old_quenched, alpha_old_quenched, "-", c="#9ed925", linewidth=1.5,
+if alpha_quenched is not None and T_quenched is not None:
+    ax.plot(T_quenched, alpha_quenched, "-", c="#9ed925", linewidth=1.5,
             label="Exp quenched state", alpha=0.5, zorder=0)
 
 ax.set_ylabel(r"CSRO amount $\alpha^{total}$", fontsize=8)
@@ -386,16 +385,16 @@ if WC_spline is not None and T_fit is not None:
         "alpha": WC_spline(T_eq_plot).tolist(),
     }
 
-if alpha_old_aged is not None and T_old_aged is not None:
-    summary_data["legacy_aged_state"] = {
-        "temperature_K": T_old_aged.tolist(),
-        "alpha": alpha_old_aged.tolist(),
+if alpha_aged is not None and T_aged is not None:
+    summary_data["aged_state"] = {
+        "temperature_K": T_aged.tolist(),
+        "alpha": alpha_aged.tolist(),
     }
 
-if alpha_old_quenched is not None and T_old_quenched is not None:
-    summary_data["legacy_quenched_state"] = {
-        "temperature_K": T_old_quenched.tolist(),
-        "alpha": alpha_old_quenched.tolist(),
+if alpha_quenched is not None and T_quenched is not None:
+    summary_data["quenched_state"] = {
+        "temperature_K": T_quenched.tolist(),
+        "alpha": alpha_quenched.tolist(),
     }
 
 summary_path = details_dir / "s07_alpha_profiles_summary.json"

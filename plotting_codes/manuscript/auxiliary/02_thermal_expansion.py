@@ -269,16 +269,6 @@ ax.plot(T_avg, CTE, "-", color="#37b35f", label="Evolving CSRO", zorder=9, linew
 T_avg, CTE = compute_CTE(y_fit, z_equilibrium)
 ax.plot(T_avg, CTE, "-", color="#6E96E5", label="Equilibrium CSRO", linewidth=1.5, alpha=0.9)
 
-T1, lat1 = np.loadtxt("data/Francisco_h1.csv", unpack=True)
-T1_avg, CTE1 = compute_CTE_nonuniform(T1, lat1)
-T1_avg = convolve_1D(T1_avg)
-CTE1 = convolve_1D(CTE1)
-
-T2, lat2 = np.loadtxt("data/Francisco_h2.csv", unpack=True)
-T2_avg, CTE2 = compute_CTE_nonuniform(T2, lat2)
-T2_avg = convolve_1D(T2_avg)
-CTE2 = convolve_1D(CTE2)
-
 ax.set_ylim(10.5, 20.5)
 ax.set_xlim(350, 1250)
 
