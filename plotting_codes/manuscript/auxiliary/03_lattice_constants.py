@@ -40,11 +40,15 @@ z_equilibrium = spline(x_fit, y_fit, grid=False)
 x_fixed = np.ones_like(y_fit) * 1473
 z_1473K = spline(x_fixed, y_fit, grid=False)
 
-x_varying = np.array([884 if y < 884 else y for y in y_fit])
+# Normalize y_fit to [0, 1] range between 884 and 900 with exponential growth
+t = (y_fit - 850) / (900 - 850)
+t = np.clip(t, 0, 1)
+k = 1
+diffusion_coeff = (np.exp(k * t) - 1) / (np.exp(k) - 1)
+x_varying = 884 + diffusion_coeff * (y_fit - 884)
 z_varying = spline(x_varying, y_fit, grid=False)
 
 # Start figure.
-# fig, ax = plt.subplots(figsize=(3.5 * 0.8, 2.69))
 fig, ax = plt.subplots(figsize=(2.8 * 1.05, 2.6))
 
 # Add details.
@@ -52,10 +56,7 @@ ax.set_ylabel(r"Lattice parameter ($\mathring{\mathrm{A}}$)", fontsize=8)
 ax.set_xlabel("Temperature (K)", fontsize=8)
 ax.set_xlim(375, 1225)
 
-# Plot experimental data.
-# ax.plot(y_fit, z_1473K, "-", color="#9ed925", label="Low CSRO (1473K)", linewidth=1.5)
-# ax.plot(y_fit, z_varying, "-", color="#37b35f", label="Evolving CSRO", zorder=9, linewidth=1.5)
-# ax.plot(y_fit, z_equilibrium, "-", color="#216b7b", label="Equilibrium CSRO", linewidth=1.5)
+# Plot.
 ax.plot(y_fit, z_1473K, "-", color="#F7931E", label="Low CSRO (1473 K)", linewidth=1.5, alpha=0.9)
 ax.plot(y_fit, z_varying, "-", color="#37b35f", label="Evolving CSRO", zorder=9, linewidth=1.5, alpha=0.9)
 ax.plot(y_fit, z_equilibrium, "-", color="#6E96E5", label="Equilibrium CSRO", linewidth=1.5, alpha=0.9)
@@ -66,5 +67,5 @@ ax.yaxis.set_label_coords(-0.13, 0.5)
 ax.xaxis.set_label_coords(0.5, -0.08)
 
 # Save figure.
-fig.savefig("figures/lattice_constants.png", dpi=300, transparent=False)
+fig.savefig("figures/lattice_constants.pdf")
 plt.close()

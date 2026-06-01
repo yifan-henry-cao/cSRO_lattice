@@ -20,14 +20,13 @@ TE_list = np.arange(400, 1201, 25).astype(int)
 # Load lattice and SRO data
 xlattice_data = np.load("data/sim_data/lattice.npy")  # (13, 33, 10)
 xlattice = mean(xlattice_data, axis=-1)  # (13, 33, 10) -> (13, 33)
-# WC_1nn_CrCr = np.load("data/WC_params/WC_avg.npy")[0, 1:-3, 0] # (3, 17, 6) -> (13,)
 WC_1nn_sum = np.sum(
     np.abs(np.load("data/WC_params/WC_avg.npy")[0, 1:-3, :]), axis=-1
 )  # (3, 17, 6) -> (13,) 1st neighbor, 400->1600K
 T_fitting = np.arange(300, 1901, 100)
 WC_fitting = np.sum(
     np.abs(np.load("data/WC_params/WC_avg.npy")[0, :, :]), axis=-1
-)  # (3, 17, 6) -> (13,) 1st neighbor, 400->1600K
+)  # (3, 17, 6) -> (17,) 1st neighbor, 300->1900K
 WC_spline = UnivariateSpline(T_fitting, WC_fitting, s=None)
 T_fit = np.linspace(300, 1900, 101)
 # Calculate the derivative of CSRO amount
@@ -72,7 +71,6 @@ def load_volumetric_lattice():
         "Vol_vs_T_h2.csv",
         "Vol_vs_T_h3.csv",
     ]
-    # labels = ["1st Heating", "2nd Heating", "3rd Heating"]
     labels = ["Aged state", "Re-heated state", "Quenched state"]
     # Colorblind-friendly: blue, green, yellow-green
     colors = ["#216b7b", "#37b35f", "#9ed925"]
@@ -186,201 +184,8 @@ CTE_CSRO = shrink_parameter_C * dCSRO_dT
 CTE_random = random_estimate(T_fit)
 total_CTE = CTE_random + CTE_CSRO
 
-# Compute the ratio of CSRO conribution to thermal expansion
+# Compute the ratio of CSRO contribution to thermal expansion
 ratio_CSRO = CTE_CSRO / total_CTE
-
-################################################################################
-# Plot thermal expansion evolution.                                            #
-################################################################################
-os.makedirs("figures/process_figures/", exist_ok=True)
-T_avg, sim_CTE = compute_CTE(TE_list, xlattice_transformed)
-average_CTE = np.mean(sim_CTE, axis=0)
-# Fit linear regression
-coeffs = np.polyfit(T_avg, average_CTE, deg=1)
-slope_average, y_intercept_average = coeffs
-
-# Fit linear regression
-T_random, CTE_random = compute_CTE_nonuniform(TE_list, lattice_random)
-coeffs = np.polyfit(T_random, CTE_random, deg=1)
-slope_random, y_intercept_random = coeffs
-
-# Start figure.
-fig, ax = plt.subplots(figsize=(3.5 * 1.3, 2.69))
-
-# Plot.
-for idx, T0 in enumerate(T_list):
-    ax.plot(T_avg, sim_CTE[idx, :], "-o", c=cmap.to_rgba(T0))
-ax.plot(T_avg, average_CTE, "o", c="black", label="Average")
-ax.plot(T_avg, slope_average * T_avg + y_intercept_average, "-", c="black", label="Linear fit")
-ax.plot(T_random, CTE_random, "o", c="orange", label="Random CTE")
-ax.plot(T_random, slope_random * T_random + y_intercept_random, "-", c="orange")
-
-# Add colorbar
-cbar = fig.colorbar(
-    cmap,
-    ax=ax,
-    pad=0.03,
-    ticks=T_list,
-    aspect=40,
-    fraction=1,
-    label="T0 (SRO)",
-    orientation="vertical",
-)
-cbar.ax.tick_params(labelsize=6)
-cbar.ax.yaxis.set_minor_locator(NullLocator())
-
-# Add details.
-ax.set_ylabel(r"Thermal expansion coefficient (10$^{-6}$ K$^{-1}$)", fontsize=8)
-ax.set_xlabel("Temperature (K)", fontsize=8)
-# ax.yaxis.set_label_coords(-0.08, 0.5)
-# ax.set_xlim(290, 1310)
-ax.set_ylim(0, 30)
-ax.legend(loc="lower left", fontsize=7)
-
-# Add text with equation
-equation_text = rf"TEC = ${y_intercept_average:.2f}$ + $T\times${slope_average:.2E} $\mathring{{\mathrm{{A}}}}$"
-equation_text_random = rf"TEC = ${y_intercept_random:.2f}$ + $T\times${slope_random:.2E} $\mathring{{\mathrm{{A}}}}$"
-plt.text(0.05, 0.95, equation_text, transform=plt.gca().transAxes, fontsize=8, verticalalignment="top")
-plt.text(0.05, 0.90, equation_text_random, transform=plt.gca().transAxes, fontsize=8, verticalalignment="top")
-
-# Save figure.
-fig.savefig("./figures/process_figures/thermal_expansion_test.png", dpi=300, transparent=False)
-plt.close()
-
-################################################################################
-# Plot lattice vs WC for all TE                                               #
-################################################################################
-
-# Start figure.
-fig, ax = plt.subplots(figsize=(3.5 * 1.0, 2.69))
-
-# Fit linear regression
-coeffs, residuals, _, _, _ = np.polyfit(TE_list, lattice_random, deg=1, full=True)
-slope, y_intercept = coeffs
-print(f"Linear fit: {residuals}")
-
-# Fit linear regression
-coeffs, residuals, _, _, _ = np.polyfit(TE_list, lattice_random, deg=2, full=True)
-A_coeff, B_coeff, C_coeff = coeffs
-print(f"Quadratic fit: {residuals}")
-
-# Plot for each TE temperature
-# ax.plot(TE_list, lattice_random, "-", color="black", linewidth=1, zorder=1)
-for idx, TE in enumerate(TE_list):
-    ax.plot(TE, lattice_random[idx], "o", color=cmap.to_rgba(TE), markersize=3, zorder=0)
-ax.plot(TE_list, slope * TE_list + y_intercept, "-", color="black", linewidth=1, zorder=1, label="Linear fit")
-ax.plot(
-    TE_list,
-    A_coeff * TE_list**2 + B_coeff * TE_list + C_coeff,
-    "-",
-    color="orange",
-    linewidth=1,
-    zorder=1,
-    label="Quadratic fit",
-)
-
-# Add text with equation
-equation_text = rf"$a^{{0}}(T)$ = {y_intercept:.2f} + $T\times${slope:.2E} $\mathring{{\mathrm{{A}}}}$"
-equation_text_quadratic = (
-    rf"$a^{{0}}(T)$ = {C_coeff:.2f} + $T\times${B_coeff:.2E} + $T^2\times${A_coeff:.2E} $\mathring{{\mathrm{{A}}}}$"
-)
-plt.text(0.05, 0.95, equation_text, transform=plt.gca().transAxes, fontsize=6, verticalalignment="top")
-plt.text(0.05, 0.90, equation_text_quadratic, transform=plt.gca().transAxes, fontsize=6, verticalalignment="top")
-
-# Add details
-ax.set_xlabel("Temperature (K)", fontsize=8)
-ax.set_ylabel(r"Lattice parameter baseline $a^{0}$ ($\mathring{\mathrm{A}}$)", fontsize=8)
-
-# Save figure.
-fig.savefig("./figures/process_figures/lattice_baseline_test.png", dpi=300, transparent=False)
-plt.close()
-
-################################################################################
-# Plot lattice temperature evolution.                                          #
-################################################################################
-
-# Start figure.
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(3.5 * 1.6, 2.69))
-
-# Plot experimental data in first subplot.
-ax1.plot(T_fitting, WC_fitting, "o", c="#216b7b")
-ax1.plot(T_fit, WC_spline(T_fit), "-", c="#216b7b", label="Equilibrium CSRO")
-
-# Add details for first subplot.
-ax1.set_ylabel(r"CSRO amount $\alpha^{total}$", fontsize=8)
-ax1.set_xlabel("Temperature (K)", fontsize=8)
-ax1.legend(loc="best")
-
-# Calculate and plot derivatives in second subplot
-spline_derivative = WC_spline.derivative()
-derivative_values = spline_derivative(T_fit)
-
-# Calculate numerical derivative of original data
-T_centers = (T_fitting[1:] + T_fitting[:-1]) / 2
-numerical_derivative = np.diff(WC_fitting) / np.diff(T_fitting)
-
-ax2.plot(T_centers, numerical_derivative, "o", c="#216b7b", label="Data")
-ax2.plot(T_fit, derivative_values, "-", c="#216b7b", label="Spline fit")
-
-# Add details for second subplot.
-ax2.set_ylabel(r"d$\alpha^{total}$/dT (K$^{-1}$)", fontsize=8)
-ax2.set_xlabel("Temperature (K)", fontsize=8)
-ax2.legend(loc="best")
-
-# Adjust layout
-plt.tight_layout()
-
-# Save figure.
-fig.savefig("./figures/process_figures/alpha_vs_T_test.png", dpi=300, transparent=False)
-
-
-################################################################################
-# Plot CTE evolution.                                                          #
-################################################################################
-def convolve_1D(arr, window_size=30):
-    kernel = np.ones(window_size) / window_size
-    averaged_array = np.convolve(arr, kernel, mode="valid")
-    return averaged_array
-
-
-# Start figure.
-fig, ax = plt.subplots(figsize=(3.5 * 0.8, 2.69))
-
-ax.plot(T_fit, total_CTE / lattice_fitted * 1e6, "-", color="#216b7b", label="Equilbirum")
-ax.plot(T_fit, (total_CTE - CTE_CSRO) / lattice_fitted * 1e6, "-", color="#55be0e", label="Random")
-ax.set_ylim(10.5, 24)
-ax.set_xlim(400, 1200)
-
-# Compute and plot CTE for all three experimental datasets
-window_size = 31
-savgol_win = 101 if window_size < 51 else window_size | 1  # odd window, >= window_size
-polyorder = 3
-for T_exp, lat_exp, color, label in zip([T1, T2, T3], [lat1, lat2, lat3], exp_colors, exp_labels):
-    T_avg, CTE = compute_CTE_windowed(T_exp, lat_exp, window_size=window_size)
-    # Smooth CTE with Savitzky-Golay filter
-    valid = ~np.isnan(CTE)
-    if np.sum(valid) > polyorder:
-        CTE_smooth = np.copy(CTE)
-        CTE_smooth[valid] = savgol_filter(
-            CTE[valid], window_length=min(savgol_win, np.sum(valid) // 2 * 2 + 1), polyorder=polyorder
-        )
-    else:
-        CTE_smooth = CTE
-    ax.plot(T_avg, CTE_smooth, "-", c=color, alpha=0.9, label=label)
-
-# Add details.
-ax.set_ylabel(r"TEC ($10^{-6}\,K^{-1}$)", fontsize=8)
-ax.set_xlabel("Temperature (K)", fontsize=8)
-ax.legend(loc="best")
-ax.spines["right"].set_visible(True)
-ax.spines["top"].set_visible(True)
-ax.yaxis.set_label_coords(-0.09, 0.5)
-ax.xaxis.set_label_coords(0.5, -0.07)
-
-# Save figure.
-fig.savefig("./figures/process_figures/thermal_expansion_fitted_test.png", dpi=300, transparent=False)
-plt.close()
-
 
 ################################################################################
 # Plot CSRO contribution.                                                      #
@@ -390,26 +195,23 @@ def convolve_1D(arr, window_size=30):
     averaged_array = np.convolve(arr, kernel, mode="valid")
     return averaged_array
 
+window_size = 31
+savgol_win = 101 if window_size < 51 else window_size | 1  # odd window, >= window_size
+polyorder = 3
 
 # Start figure.
 fig, ax = plt.subplots(figsize=(2.8, 2.6))
 
 ax.plot(T_fit, ratio_CSRO * 100, "-", color="#6B93E4", linewidth=1, label="Equilbirum")
-# ax.set_ylim(0, 100)
 ax.set_xlim(400, 1500)
 
 for T_exp, lat_exp, color, label in zip([T1, T2, T3], [lat1, lat2, lat3], exp_colors, exp_labels):
     T_avg, CTE = compute_CTE_windowed(T_exp, lat_exp, window_size=window_size)
-    # valid = ~np.isnan(CTE)
     margin = window_size // 2
     valid = ~np.isnan(CTE)
     valid[:margin] = False
     valid[-margin:] = False
     if np.sum(valid) > polyorder:
-        # CTE_smooth = np.copy(CTE)
-        # CTE_smooth[valid] = savgol_filter(
-        #     CTE[valid], window_length=min(savgol_win, np.sum(valid) // 2 * 2 + 1), polyorder=polyorder
-        # )
         CTE_smooth = convolve_1D(CTE[valid], window_size=savgol_win)
         T_avg = convolve_1D(T_avg[valid], window_size=savgol_win)
     else:
@@ -431,79 +233,5 @@ ax.yaxis.set_label_coords(-0.12, 0.5)
 ax.xaxis.set_label_coords(0.5, -0.07)
 
 # Save figure.
-fig.savefig("./figures/CSRO_contribution.png", dpi=300, transparent=False)
+fig.savefig("./figures/CSRO_contribution.pdf")
 plt.close()
-
-
-# # --- Plot CTE evolution for all three experimental datasets (7th order polynomial fit) ---
-# fig, ax = plt.subplots(figsize=(3.5 * 0.8, 2.69))
-
-# ax.plot(T_fit, total_CTE / lattice_fitted * 1e6, "-", color="#216b7b", label="Equilbirum")
-# ax.plot(T_fit, (total_CTE - CTE_CSRO) / lattice_fitted * 1e6, "-", color="#55be0e", label="Random")
-# ax.set_ylim(10.5, 24)
-# ax.set_xlim(400, 1200)
-
-# window_size = 31
-# polyorder_fit = 7
-# for T_exp, lat_exp, color, label in zip([T1, T2, T3], [lat1, lat2, lat3], exp_colors, exp_labels):
-#     T_avg, CTE = compute_CTE_windowed(T_exp, lat_exp, window_size=window_size)
-#     margin = window_size // 2
-#     valid = ~np.isnan(CTE)
-#     valid[:margin] = False
-#     valid[-margin:] = False
-#     # Fit 7th order polynomial to valid data
-#     if np.sum(valid) > polyorder_fit:
-#         p = np.polyfit(T_avg[valid], CTE[valid], polyorder_fit)
-#         CTE_poly = np.polyval(p, T_avg)
-#     else:
-#         CTE_poly = CTE
-#     # Plot original data (dots, alpha=0.3)
-#     ax.plot(T_avg, CTE, "o", c=color, alpha=0.01)
-#     # Plot polynomial fit (solid line)
-#     ax.plot(T_avg, CTE_poly, "-", c=color, alpha=0.9, label=label + " polyfit")
-
-# ax.set_ylabel(r"TEC ($10^{-6}\,K^{-1}$)", fontsize=8)
-# ax.set_xlabel("Temperature (K)", fontsize=8)
-# ax.legend(loc="best")
-# ax.spines["right"].set_visible(True)
-# ax.spines["top"].set_visible(True)
-# ax.yaxis.set_label_coords(-0.09, 0.5)
-# ax.xaxis.set_label_coords(0.5, -0.07)
-# fig.savefig("./figures/process_figures/thermal_expansion_fitted_polyfit.png", dpi=300, transparent=False)
-# plt.close()
-
-# # --- Plot CSRO contribution for all three experimental datasets (7th order polynomial fit) ---
-# fig, ax = plt.subplots(figsize=(2.8, 2.6))
-
-# ax.plot(T_fit, ratio_CSRO * 100, "-", color="#6B93E4", linewidth=1.5, label="Equilbirum")
-# ax.set_xlim(400, 1500)
-
-# for T_exp, lat_exp, color, label in zip([T1, T2, T3], [lat1, lat2, lat3], exp_colors, exp_labels):
-#     T_avg, CTE = compute_CTE_windowed(T_exp, lat_exp, window_size=window_size)
-#     margin = window_size // 2
-#     valid = ~np.isnan(CTE)
-#     valid[:margin] = False
-#     valid[-margin:] = False
-#     # Fit 7th order polynomial to valid data
-#     if np.sum(valid) > polyorder_fit:
-#         p = np.polyfit(T_avg[valid], CTE[valid], polyorder_fit)
-#         CTE_poly = np.polyval(p, T_avg)
-#     else:
-#         CTE_poly = CTE
-#     lat_avg = np.interp(T_avg, T_exp, lat_exp)
-#     ratio_CSRO_exp = (CTE_poly - random_estimate(T_avg) / lat_avg * 1e6) / CTE_poly * 100
-#     # Plot original data (dots, alpha=0.3)
-#     ax.plot(T_avg, (CTE - random_estimate(T_avg) / lat_avg * 1e6) / CTE * 100, "o", c=color, alpha=0.01)
-#     # Plot polynomial fit (solid line)
-#     ax.plot(T_avg, ratio_CSRO_exp, "-", c=color, alpha=0.9, label=label + " polyfit")
-
-# ax.axhline(0, color="black", alpha=0.5, linestyle="--", zorder=0)
-# ax.set_ylabel(r"CSRO contribution to TEC (%)", fontsize=8)
-# ax.set_xlabel("Temperature (K)", fontsize=8)
-# ax.legend(loc="best")
-# ax.spines["right"].set_visible(True)
-# ax.spines["top"].set_visible(True)
-# ax.yaxis.set_label_coords(-0.09, 0.5)
-# ax.xaxis.set_label_coords(0.5, -0.07)
-# fig.savefig("./figures/CSRO_contribution_polyfit.png", dpi=300, transparent=False)
-# plt.close()

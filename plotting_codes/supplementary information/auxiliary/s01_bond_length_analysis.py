@@ -22,8 +22,7 @@ TE_list = np.arange(400, 1201, 25).astype(int)
 bond_length_TE = np.load("data/sim_data/bond_length_TE.npy")  # (TE, ID, 3, 3)
 bond_length_TSRO = np.load("data/sim_data/bond_length_TSRO.npy")  # (T, ID, 3, 3)
 
-# Load Warren-Cowley parameter for Cr-Cr pairs
-# WC_1nn_CrCr = np.load("data/WC_params/WC_avg.npy")[0, 1:-3, 0]  # (13,) - matches T_list length
+# Load Warren-Cowley parameter
 WC_1nn_sum = np.sum(
     np.abs(np.load("data/WC_params/WC_avg.npy")[0, 1:-3, :]), axis=-1
 )  # (3, 17, 6) -> (13,) 1st neighbor, 400->1600K
@@ -44,7 +43,6 @@ colors = ["#8c564b", "#90C47F", "#FE7C46", "#21B0FE", "#9069C5", "#FE218B"]
 ################################################################################
 fig, ax = plt.subplots(figsize=(3.5 * 1.0, 2.69))
 
-# Plot each pair
 idx = 0
 for i in range(3):
     for j in range(i, 3):
@@ -63,7 +61,7 @@ ax.spines["top"].set_visible(True)
 ax.yaxis.set_label_coords(-0.10, 0.5)
 ax.xaxis.set_label_coords(0.5, -0.08)
 
-fig.savefig("figures/bond_length_vs_TE.png", dpi=300, transparent=False)
+fig.savefig("figures/s01_bond_length_vs_TE.pdf")
 plt.close()
 
 ################################################################################
@@ -71,7 +69,6 @@ plt.close()
 ################################################################################
 fig, ax = plt.subplots(figsize=(3.5 * 1.0, 2.69))
 
-# Plot each pair
 idx = 0
 for i in range(3):
     for j in range(i, 3):
@@ -87,59 +84,29 @@ ax.spines["right"].set_visible(True)
 ax.spines["top"].set_visible(True)
 ax.yaxis.set_label_coords(-0.12, 0.5)
 ax.xaxis.set_label_coords(0.5, -0.08)
-# ax.legend(fontsize=6, ncol=2)
 
-fig.savefig("figures/bond_length_vs_alpha.png", dpi=300, transparent=False)
+fig.savefig("figures/s01_bond_length_vs_alpha.pdf")
 plt.close()
-
-# Save Figure 2 data to CSV files (mean and std)
-
-# Prepare data arrays for CSV
-mean_data = np.zeros((len(WC_1nn_sum), 7))  # 1 alpha + 6 pairs
-std_data = np.zeros((len(WC_1nn_sum), 7))
-mean_data[:, 0] = WC_1nn_sum
-std_data[:, 0] = WC_1nn_sum
-
-idx = 0
-for i in range(3):
-    for j in range(i, 3):
-        mean_data[:, idx + 1] = bond_mean_TSRO[:, i, j]
-        std_data[:, idx + 1] = bond_std_TSRO[:, i, j]
-        idx += 1
-
-header = ["alpha"] + pair_labels
-os.system("mkdir -p data/for_guilherme/")
-np.savetxt(
-    "data/for_guilherme/bond_length_vs_alpha_mean.csv", mean_data, delimiter=",", header=",".join(header), comments=""
-)
-np.savetxt(
-    "data/for_guilherme/bond_length_vs_alpha_std.csv", std_data, delimiter=",", header=",".join(header), comments=""
-)
 
 
 ################################################################################
-# Figure 3: Bond lengths distributions                                         #
+# Figure 3: Bond length distributions                                          #
 ################################################################################
 def plot_bond_distribution(pair_key, all_temp_bonds, pair_name, figsize, plot_cbar=False):
     fig, ax = plt.subplots(figsize=figsize)
 
-    # Find global min and max bond lengths for this pair to set consistent bins
     all_bonds = []
     for T0 in T_list:
         all_bonds.extend(all_temp_bonds[T0][pair_key])
 
     min_bond = np.min(all_bonds)
     max_bond = np.max(all_bonds)
-
-    # Create consistent bins for all temperatures
     bins = np.linspace(min_bond, max_bond, 40)
 
-    # Setup color map for alpha_total (WC_1nn_sum), now low alpha is red, high is blue
     norm = Normalize(vmin=min(WC_1nn_sum), vmax=max(WC_1nn_sum))
     RedtoBlue = LinearSegmentedColormap.from_list("RedtoBlue", ["#d62728", "#1f77b4"])
     sm = ScalarMappable(norm=norm, cmap=RedtoBlue)
 
-    # Plot histogram for each temperature
     for i, T0 in enumerate(T_list):
         bonds = all_temp_bonds[T0][pair_key]
         alpha_val = WC_1nn_sum[i]
@@ -149,14 +116,9 @@ def plot_bond_distribution(pair_key, all_temp_bonds, pair_name, figsize, plot_cb
             bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
             plt.plot(bin_centers, counts, alpha=0.8, color=color, linewidth=1)
 
-        # Compute mean bond length
         mean_bond = np.mean(bonds)
-
-        # Find the bin center closest to the mean
         idx_closest = np.argmin(np.abs(bin_centers - mean_bond))
         mean_y = counts[idx_closest]
-
-        # Plot the dot at the mean location
         plt.plot(mean_bond, mean_y, marker="o", markersize=6, markerfacecolor=color, markeredgecolor="black")
 
     plt.xlabel("Bond Length (Å)")
@@ -164,9 +126,8 @@ def plot_bond_distribution(pair_key, all_temp_bonds, pair_name, figsize, plot_cb
     plt.title(f"{pair_name} Bond Length Distribution")
     ax.set_ylim(bottom=0, top=5600)
 
-    # Add colorbar for alpha_total, with evenly spaced ticks
     if plot_cbar:
-        n_ticks = 6  # or len(WC_1nn_sum) if you want all, but 6 is more readable
+        n_ticks = 6
         ticks = np.linspace(min(WC_1nn_sum), max(WC_1nn_sum), n_ticks)
         cbar = fig.colorbar(
             sm,
@@ -185,45 +146,19 @@ def plot_bond_distribution(pair_key, all_temp_bonds, pair_name, figsize, plot_cb
     ax.yaxis.set_label_coords(-0.12, 0.5)
     ax.xaxis.set_label_coords(0.5, -0.08)
 
-    # Save the plot
-    plt.savefig(f"figures/bond_dist_{pair_name}.png", dpi=300, bbox_inches="tight", transparent=False)
+    plt.savefig(f"figures/s01_bond_dist_{pair_name}.pdf", bbox_inches="tight")
     plt.close()
 
 
-# Load the raw bond length data
 all_temp_bonds = np.load("data/bond_statistics/all_bond_lengths.npy", allow_pickle=True).item()
-
-# Get temperature list and sort it
 T_list = np.array(sorted(all_temp_bonds.keys()))
 
-# Setup color map
 RedtoBlue = LinearSegmentedColormap.from_list("RedtoBlue", ["#1f77b4", "#d62728"])
 cmap = ScalarMappable(Normalize(min(T_list), max(T_list)), RedtoBlue)
 
-# Define atom types
-atom_types = ["Cr", "Co", "Ni"]
-ncomponent = len(atom_types)
-
-pair_key = (0, 0)
-pair_name = "Cr-Cr"
-plot_bond_distribution(pair_key, all_temp_bonds, pair_name, (3.5 * 0.9, 2.69), plot_cbar=False)
-
-pair_key = (0, 1)
-pair_name = "Cr-Co"
-plot_bond_distribution(pair_key, all_temp_bonds, pair_name, (3.5 * 1.1, 2.69), plot_cbar=True)
-
-pair_key = (0, 2)
-pair_name = "Cr-Ni"
-plot_bond_distribution(pair_key, all_temp_bonds, pair_name, (3.5 * 0.9, 2.69), plot_cbar=False)
-
-pair_key = (1, 1)
-pair_name = "Co-Co"
-plot_bond_distribution(pair_key, all_temp_bonds, pair_name, (3.5 * 1.1, 2.69), plot_cbar=True)
-
-pair_key = (1, 2)
-pair_name = "Co-Ni"
-plot_bond_distribution(pair_key, all_temp_bonds, pair_name, (3.5 * 0.9, 2.69), plot_cbar=False)
-
-pair_key = (2, 2)
-pair_name = "Ni-Ni"
-plot_bond_distribution(pair_key, all_temp_bonds, pair_name, (3.5 * 1.1, 2.69), plot_cbar=True)
+plot_bond_distribution((0, 0), all_temp_bonds, "Cr-Cr", (3.5 * 0.9, 2.69), plot_cbar=False)
+plot_bond_distribution((0, 1), all_temp_bonds, "Cr-Co", (3.5 * 1.1, 2.69), plot_cbar=True)
+plot_bond_distribution((0, 2), all_temp_bonds, "Cr-Ni", (3.5 * 0.9, 2.69), plot_cbar=False)
+plot_bond_distribution((1, 1), all_temp_bonds, "Co-Co", (3.5 * 1.1, 2.69), plot_cbar=True)
+plot_bond_distribution((1, 2), all_temp_bonds, "Co-Ni", (3.5 * 0.9, 2.69), plot_cbar=False)
+plot_bond_distribution((2, 2), all_temp_bonds, "Ni-Ni", (3.5 * 1.1, 2.69), plot_cbar=True)

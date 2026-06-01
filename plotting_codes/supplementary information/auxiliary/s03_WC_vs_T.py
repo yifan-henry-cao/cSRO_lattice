@@ -21,7 +21,6 @@ fig, ax = plt.subplots(figsize=(3.5 * 1.0, 2.69))
 pair_idx = 0
 for icomp in range(ncomponent):
     for jcomp in range(icomp, ncomponent):
-        # label_txt = element[icomp] + "-" + element[jcomp]
         label_txt = label_list[pair_idx]
         mean = WC_avg[0, :, pair_idx]
         std = WC_std[0, :, pair_idx]
@@ -40,18 +39,6 @@ ax.yaxis.set_label_coords(-0.10, 0.5)
 ax.xaxis.set_label_coords(0.5, -0.08)
 
 # Save figure.
-fig.savefig(f"./figures/WC_vs_T.png", dpi=300, transparent=False)
+fig.savefig("./figures/s03_WC_vs_T.pdf")
 plt.close()
 
-# Prepare pair labels
-pair_labels = []
-for icomp in range(ncomponent):
-    for jcomp in range(icomp, ncomponent):
-        pair_labels.append(element[icomp] + "-" + element[jcomp])
-
-# Prepare data: first column is Temp_list, others are WC_avg[0, :, pair_idx] for each pair
-csv_data = np.column_stack([Temp_list] + [WC_avg[0, :, i] for i in range(len(pair_labels))])
-
-header = ["Temperature"] + pair_labels
-# os.makedirs("./figures", exist_ok=True)
-np.savetxt("./data/for_guilherme/WC_vs_T.csv", csv_data, delimiter=",", header=",".join(header), comments="")

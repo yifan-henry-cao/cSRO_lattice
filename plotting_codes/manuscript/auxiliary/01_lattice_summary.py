@@ -24,14 +24,7 @@ WC_1nn_sum = np.sum(
 )  # (3, 17, 6) -> (13,) 1st neighbor, 400->1600K
 
 # Temperature color map
-# Color gradient change, KL divergence? Time consuming, no need if necessary
-# Figure 4d, matched experimental order parameter (mapped from lattice constant)
-# Figure 4e, Sigma|\alpha| vs Temperature for CrCoNi
-# Cr-Cr vs Cr-Co bond length
-# RedtoBlue = LinearSegmentedColormap.from_list("RedtoBlue", ["#1f77b4", "#d62728"])
 Viridis = plt.colormaps["viridis"].reversed()
-# Viridis = LinearSegmentedColormap.from_list("RedtoBlue", ["#F7931E", "#430256"])
-# cmap = ScalarMappable(Normalize(min(T_list), max(T_list)), RedtoBlue)
 cmap = ScalarMappable(Normalize(min(WC_1nn_sum), max(WC_1nn_sum)), Viridis)
 
 os.system("mkdir -p figures/")
@@ -41,7 +34,6 @@ os.system("mkdir -p figures/")
 ################################################################################
 
 # Start figure.
-# fig, ax = plt.subplots(figsize=(3.5 * 1.575, 2.69))
 fig, ax = plt.subplots(figsize=(2.8 * 1.23, 2.6))
 
 # Plot.
@@ -60,7 +52,6 @@ cbar = fig.colorbar(
     label=r"$\alpha^{total}$",
     orientation="vertical",
 )
-# cbar.ax.tick_params(labelsize=6)
 cbar.ax.tick_params(labelsize=5)
 # Format tick labels to show 3 decimal places
 cbar.ax.set_yticklabels([f"{x:.2f}" for x in tick_values])
@@ -68,11 +59,9 @@ cbar.ax.set_yticklabels([f"{x:.2f}" for x in tick_values])
 # Add details.
 ax.set_ylabel(r"Lattice parameter ($\mathring{\mathrm{A}}$)", fontsize=8)
 ax.set_xlabel("Temperature (K)", fontsize=8)
-# ax.set_xlim(0, 2000)
-# ax.legend()
 ax.spines["right"].set_visible(True)
 ax.spines["top"].set_visible(True)
 
 # Save figure.
-fig.savefig("figures/lattice_summary.png", dpi=300, transparent=False)
+fig.savefig("figures/lattice_summary.pdf")
 plt.close()

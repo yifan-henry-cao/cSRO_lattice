@@ -45,17 +45,13 @@ z_904K = spline(x_varying, y_fit, grid=False)
 
 # Start figure.
 fig, ax = plt.subplots(figsize=(3.5, 2.69))
-# fig, ax = plt.subplots(figsize=(2.8 * 1.05, 2.6))
 
 # Add details.
 ax.set_ylabel(r"Lattice parameter ($\mathring{\mathrm{A}}$)", fontsize=8)
 ax.set_xlabel("Temperature (K)", fontsize=8)
 ax.set_xlim(375, 1225)
 
-# Plot experimental data.
-# ax.plot(y_fit, z_1473K, "-", color="#9ed925", label="Low CSRO (1473K)", linewidth=1.5)
-# ax.plot(y_fit, z_varying, "-", color="#37b35f", label="Evolving CSRO", zorder=9, linewidth=1.5)
-# ax.plot(y_fit, z_equilibrium, "-", color="#216b7b", label="Equilibrium CSRO", linewidth=1.5)
+# Plot.
 ax.plot(y_fit, z_equilibrium, "-", color="#216b7b", label=r"T$_{kr}$=733K", linewidth=1.5, alpha=0.7)
 ax.plot(y_fit, z_870K, "-", color="#37b35f", label=r"T$_{kr}$=870K", linewidth=1.5, alpha=0.7)
 ax.plot(y_fit, z_904K, "-", color="#9ed925", label=r"T$_{kr}$=904K", zorder=9, linewidth=1.5, alpha=0.7)
@@ -66,5 +62,5 @@ ax.yaxis.set_label_coords(-0.13, 0.5)
 ax.xaxis.set_label_coords(0.5, -0.08)
 
 # Save figure.
-fig.savefig("figures/lattice_constants_Tkr.png", dpi=300, transparent=False)
+fig.savefig("figures/s04_lattice_constants_Tkr.pdf")
 plt.close()

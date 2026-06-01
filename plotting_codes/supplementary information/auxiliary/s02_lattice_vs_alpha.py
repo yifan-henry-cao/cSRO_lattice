@@ -18,7 +18,6 @@ TE_list = np.arange(400, 1201, 25).astype(int)
 # Load lattice and SRO data
 xlattice_data = np.load("data/sim_data/lattice.npy")  # (13, 33, 10)
 xlattice = mean(xlattice_data, axis=-1)  # (13, 33, 10) -> (13, 33)
-# WC_1nn_CrCr = np.load("data/WC_params/WC_avg.npy")[0, 1:-3, 0] # (3, 17, 6) -> (13,)
 WC_1nn_sum = np.sum(
     np.abs(np.load("data/WC_params/WC_avg.npy")[0, 1:-3, :]), axis=-1
 )  # (3, 17, 6) -> (13,) 1st neighbor, 400->1600K
@@ -28,8 +27,9 @@ BluetoRed = LinearSegmentedColormap.from_list("BluetoRed", ["#1f77b4", "#d62728"
 cmap = ScalarMappable(Normalize(min(TE_list), max(TE_list)), BluetoRed)
 
 os.system("mkdir -p figures/")
+
 ################################################################################
-# Plot lattice vs WC for all TE                                               #
+# Plot lattice change vs WC for all TE                                        #
 ################################################################################
 lattice_random = np.zeros_like(TE_list).astype(np.float64)
 lattice_adjusted = np.zeros_like(xlattice)
@@ -37,8 +37,6 @@ lattice_adjusted = np.zeros_like(xlattice)
 # Start figure.
 fig, ax = plt.subplots(figsize=(3.5 * 1.3, 2.69))
 
-# Plot for each TE temperature
-# TE_list = np.arange(400, 401, 25).astype(int)
 for idx, TE in enumerate(TE_list):
     lattice_at_TE = xlattice[:, idx]
 
@@ -47,9 +45,6 @@ for idx, TE in enumerate(TE_list):
     slope, y_intercept = coeffs
 
     lattice_random[idx] = y_intercept
-
-    # Print the y-intercept value
-    # print(f"Temperature {TE}K - Y-intercept (subtracted value): {y_intercept:.6f}")
 
     # Subtract y-intercept and plot
     adjusted_lattice = lattice_at_TE - y_intercept
@@ -85,32 +80,28 @@ ax.yaxis.set_label_coords(-0.10, 0.5)
 ax.xaxis.set_label_coords(0.5, -0.08)
 
 # Save figure.
-fig.savefig("figures/lattice_vs_alpha.png", dpi=300, transparent=False)
+fig.savefig("figures/s02_lattice_vs_alpha.pdf")
 plt.close()
 
 ################################################################################
-# Plot lattice vs WC for all TE                                               #
+# Plot lattice baseline vs temperature                                        #
 ################################################################################
 
 # Start figure.
 fig, ax = plt.subplots(figsize=(3.5 * 1.0, 2.69))
 
-# Fit linear regression
-# coeffs = np.polyfit(TE_list, lattice_random, deg=1)
-# slope, y_intercept = coeffs
+# Fit quadratic function for random lattice
 coeffs, residuals, _, _, _ = np.polyfit(TE_list, lattice_random, deg=2, full=True)
 A_coeff, B_coeff, C_coeff = coeffs
 
 quadratic_fit = lambda T: A_coeff * T**2 + B_coeff * T + C_coeff
 
-# Plot for each TE temperature
 T_fit = np.linspace(min(TE_list), max(TE_list), 101)
 ax.plot(T_fit, quadratic_fit(T_fit), "-", color="black", linewidth=1, zorder=1)
 for idx, TE in enumerate(TE_list):
     ax.plot(TE, lattice_random[idx], "o", color=cmap.to_rgba(TE), markersize=3, zorder=2)
 
 # Add text with equation
-# equation_text = rf"$a^{{0}}(T)$ = {y_intercept:.2f} + $T\times${slope:.2E} $\mathring{{\mathrm{{A}}}}$"
 equation_text = rf"""$a^{{0}}(T)$ = {C_coeff:.3f} + $T\times${B_coeff:.2E}
             + $T^2\times${A_coeff:.2E} $\mathring{{\mathrm{{A}}}}$"""
 plt.text(0.05, 0.97, equation_text, transform=plt.gca().transAxes, fontsize=8, verticalalignment="top")
@@ -124,5 +115,5 @@ ax.yaxis.set_label_coords(-0.10, 0.5)
 ax.xaxis.set_label_coords(0.5, -0.08)
 
 # Save figure.
-fig.savefig("figures/lattice_baseline.png", dpi=300, transparent=False)
+fig.savefig("figures/s02_lattice_baseline.pdf")
 plt.close()
