@@ -5,6 +5,8 @@ The atom type mapping for the potential, training dataset, and simulation data a
 
 The final snapshots from Monte Carlo simulations that are used as input structures for Molecular Dynamic simulations are contained in ./simulations/MC_structures/, while a fraction of the final structures from MD simulations (the ones used to evaluate bond lengths) are contained in ./simulations/ordered_thermal_expansion/. Additional atomistic simulation data can be added to this repository upon reasonable request.
 
+All source codes for reproducing Fig.3 and Fig.4 of the manuscript and Supplementary Figure.8-15 of the supplementary information can be found in ./plotting_codes/ using the run_all.sh code within auxiliary folders.
+
 ## References & Citing
 If you use this repository in your work, please cite:
 
@@ -19,13 +21,19 @@ If you use this repository in your work, please cite:
 and 
 
 ```
-@misc{caocapturing2024,
-      title={Capturing short-range order in high-entropy alloys with machine learning potentials}, 
-      author={Yifan Cao and Killian Sheriff and Rodrigo Freitas},
-      year={2024},
-      eprint={2401.06622},
-      archivePrefix={arXiv},
-      primaryClass={cond-mat.mtrl-sci},
-      url={https://arxiv.org/abs/2401.06622}, 
+@article{cao_capturing_2025,
+  title = {Capturing Short-Range Order in High-Entropy Alloys with Machine Learning Potentials},
+  author = {Cao, Yifan and Sheriff, Killian and Freitas, Rodrigo},
+  year = 2025,
+  month = aug,
+  journal = {npj Computational Materials},
+  volume = {11},
+  number = {1},
+  pages = {268},
+  issn = {2057-3960},
+  doi = {10.1038/s41524-025-01722-2},
+  urldate = {2025-08-21},
+  copyright = {All rights reserved},
+  langid = {english}
 }
 ```
