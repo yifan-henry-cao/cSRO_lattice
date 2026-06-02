@@ -150,7 +150,7 @@ ax.plot(T2, alpha2, "-", c="#9ed925", alpha=1.0, linewidth=1.5, label="Quenched 
 # Equilibrium CSRO reference
 ax.plot(T_fit, WC_spline(T_fit), "-", c="#6B93E4", label="Equilibrium CSRO", linewidth=1.5, zorder=0)
 
-ax.set_ylabel(r"CSRO amount $\alpha^{total}$", fontsize=8)
+ax.set_ylabel(r"CSRO amount $\alpha^{\mathrm{total}}$", fontsize=8)
 ax.set_xlabel("Temperature (K)", fontsize=8)
 ax.legend(loc="best")
 ax.spines["right"].set_visible(True)
